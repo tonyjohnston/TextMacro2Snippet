@@ -69,9 +69,11 @@
     snippetPlist = [[NSMutableArray alloc] initWithCapacity:[macroPlist count]];
     
     for (NSDictionary* item in macroPlist) {
-        NSString* textString;
+        NSString* textString, *titleString;
         textString = [item objectForKey:@"TextString"];
-        if (!textString) {
+		titleString = [item objectForKey:@"Name"];
+
+        if (!textString || !titleString) {
             NSLog(@"Ignored: %@", item);
             
             continue;
@@ -83,7 +85,7 @@
         [snippetItem setObject:PPUUIDString() forKey:@"IDECodeSnippetIdentifier"];
         [snippetItem setObject:[NSNumber numberWithBool:YES] forKey:@"IDECodeSnippetUserSnippet"];
         [snippetItem setObject:textString forKey:@"IDECodeSnippetContents"];
-        [snippetItem setObject:@"Xcode.SourceCodeLanguage.Objective-C" forKey:@"IDECodeSnippetLanguage"];
+        [snippetItem setObject:@"Xcode.SourceCodeLanguage.PHP" forKey:@"IDECodeSnippetLanguage"];
         
         id value;
         NSString* name;
@@ -91,6 +93,7 @@
         value = [item objectForKey:@"Name"];
         if (value) {
             [snippetItem setObject:value forKey:@"IDECodeSnippetTitle"];
+			
         }
 #if 0   // Use uuid
         name = PPUUIDString();
@@ -112,13 +115,16 @@
         if (value) {
             [snippetItem setObject:value forKey:@"IDECodeSnippetExcludeContexts"];
         }
+		
+		// Extended attributes
+		
         
         NSData* snippetData;
         snippetData = [NSPropertyListSerialization dataWithPropertyList:snippetItem format:NSPropertyListXMLFormat_v1_0 options:0 error:NULL];
     
         NSURL* snippetFileUrl;
         snippetFileUrl = snippetFolderUrl;
-        snippetFileUrl = [snippetFileUrl URLByAppendingPathComponent:name];
+        snippetFileUrl = [snippetFileUrl URLByAppendingPathComponent:[self _sanitizeFileNameString: name]];
         snippetFileUrl = [snippetFileUrl URLByAppendingPathExtension:@"codesnippet"];
         
         if (![snippetData writeToURL:snippetFileUrl atomically:YES]) {
@@ -130,6 +136,11 @@
     }
     
     [snippetPlist release];
+}
+
+- (NSString *)_sanitizeFileNameString:(NSString *)fileName {
+    NSCharacterSet* illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/\\?%*|\"<>"];
+    return [[fileName componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
 }
 
 
